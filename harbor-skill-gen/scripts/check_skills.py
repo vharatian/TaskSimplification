@@ -88,6 +88,36 @@ def collect_identifiers(wd: Path) -> set:
     return {i for i in ids if i.lower() not in GENERIC and not re.fullmatch(r"(test_?\w{0,3}|\w{0,3}_test|test_\w+)", i.lower())}
 
 
+PUBLIC_API_MODULES = ["builtins", "os", "os.path", "sys", "re", "json", "pathlib", "argparse", "ast", "tokenize", "token",
+    "symtable", "collections", "collections.abc", "typing", "typing_extensions", "dataclasses", "enum", "functools",
+    "itertools", "contextlib", "io", "logging", "unittest.mock", "asyncio", "datetime", "xml.etree.ElementTree",
+    "urllib.parse", "subprocess", "shutil", "tempfile", "inspect", "types", "abc", "warnings", "importlib",
+    "pytest", "requests", "requests.exceptions", "httpx", "aiohttp", "niquests", "msgspec", "pydantic", "fastapi",
+    "starlette", "starlette.testclient", "fastapi.testclient", "django.conf", "django.contrib.admin", "lxml.etree",
+    "yaml", "bibtexparser", "bibtexparser.model", "psycopg2", "psycopg2.extras", "click", "typer"]
+PYTEST_FIXTURES = {"tmp_path", "tmpdir", "monkeypatch", "capsys", "capfd", "caplog", "request", "recwarn", "tmp_path_factory"}
+DJANGO_PUBLIC = {"USERNAME_FIELD", "get_username", "search_fields", "list_display", "list_filter", "override_settings",
+                 "status_code", "response_model", "dependency_overrides", "HTTPException"}
+
+
+def public_api_names() -> set:
+    """Names that are public API of the stdlib or well-known libraries: a skill may use them freely."""
+    import importlib
+    names = set(PYTEST_FIXTURES) | DJANGO_PUBLIC
+    for mod in PUBLIC_API_MODULES:
+        try:
+            m = importlib.import_module(mod)
+        except Exception:
+            continue
+        for n in dir(m):
+            if not n.startswith("_"):
+                names.add(n)
+                obj = getattr(m, n, None)
+                if isinstance(obj, type):
+                    names.update(a for a in dir(obj) if not a.startswith("_"))
+    return {n.lower() for n in names}
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("work_dir")
@@ -96,6 +126,7 @@ def main():
     a = ap.parse_args()
     wd = Path(a.work_dir)
     allow = {x.strip().lower() for x in a.allow.split(",") if x.strip()}
+    allow |= public_api_names()
     ids = {i for i in collect_identifiers(wd) if len(i) >= a.min_len and i.lower() not in allow}
     skills = sorted((wd / "skills").glob("*/SKILL.md")) + sorted((wd / "skills").glob("*/CARD.md"))
     if not skills:
