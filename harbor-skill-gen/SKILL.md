@@ -119,21 +119,25 @@ trigger summary; plus the one-off issues rejected as task-specific) and run:
 python3 <skill_dir>/scripts/check_skills.py <work_dir>    # exit 1 = leak or benchmark-gaming phrasing; fix and re-run
 ```
 
-## Stage 4 — delivery folder (script)
+## Stage 4 — select 2-3 skills per task (you), then build (script)
 
+First validate the library against the Agent Skills format:
 ```bash
-python3 <skill_dir>/scripts/build_task_delivery.py <work_dir> --delivery-dir <export_root> --out <out_dir>
+python3 <skill_dir>/scripts/check_skill_format.py <work_dir> --targets-from <export_root>   # exit 1 = fix names/descriptions
 ```
-Copies each analysed task's task files (no runs) flat into `<out_dir>/<task>/`, writes
-`environment/skills.md` (related cards by phase + shared finish checklist), adds
-`COPY skills.md /opt/skills.md` to the Dockerfile, appends the read-the-skills block to
-`instruction.md`, refreshes `manifest.json` where present, and writes `MANIFEST.json`,
-`TRACEABILITY.md|json` and `README.md`. Then run the hygiene check and fix anything it reports:
+Then follow `prompts/stage4_skill_selection.md`: choose 2-3 skills per task from what the agent
+can see (instruction, spec, dependency pins), never from its runs or tests, and write
+`<work_dir>/selection.json`. Build:
 ```bash
-python3 <skill_dir>/scripts/check_delivery.py <out_dir> --expect-skills --fix   # strips author notes (FIX_NOTES*, NOTES*, TODO*, .DS_Store …), verifies skills.md / COPY / instruction pointer / manifest
+python3 <skill_dir>/scripts/build_skills_dir.py <work_dir> --tasks-src <export_root> --out <out_dir>
+python3 <skill_dir>/scripts/check_delivery.py <out_dir> --fix
 ```
-Exit 0 is required before handing the folder over. Spot-check one task's Dockerfile,
-instruction tail and skills.md.
+Each task gets `environment/skills/<name>/SKILL.md`, `COPY skills/ /opt/skills/` in its
+Dockerfile and `skills_dir = "/opt/skills"` in `[environment]`. terminus-2 lists the skills by
+name and description in its prompt and the agent opens the relevant ones; no instruction edit.
+The builder refuses any skill that names the task's own target package.
+`--all-skills` gives every task the whole library (use it only as an ablation arm).
+`build_task_delivery.py` (single combined skills.md) is kept for comparison runs.
 
 ## Stage 5 — report
 

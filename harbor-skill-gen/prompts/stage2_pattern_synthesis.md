@@ -31,6 +31,25 @@ A pattern becomes a skill ONLY if all of these hold:
   project's tests/code/wording" is not a skill; it is memorisation. Drop it (or restate it as
   spec/sandbox-derived inference).
 
+
+## Two kinds of skill (decide for every candidate)
+
+- **Ecosystem skill**: knowledge about a third-party library, standard-library area, framework
+  or protocol that the task DEPENDS ON (a database driver's type mapping, a web framework's
+  status-code conventions, a tokenizer's behaviour on a new Python version, a CLI library's
+  argument model). These are the most reusable: any task that pins the same dependency
+  benefits. Analogy: "how networking works between serverless functions" is a skill; "the
+  message format these two functions exchange in this project" is a hint.
+- **Process skill**: a working habit for this task family (reading a long spec in a small
+  terminal, verifying every clause). Keep at most 2-3 of these in the whole library.
+
+Never make the package being rebuilt the subject of a skill. In NL2Repo the target package is
+the answer; knowledge about it is a leak, however general it sounds. Ecosystem skills are about
+its dependencies, never about it.
+
+Record `"skill_kind": "ecosystem | process"` and, for ecosystem skills, `"applies_when"`: the
+dependency names or spec features that make a task eligible. Stage 4 selects on these.
+
 Record the decision per candidate: `"generality": "general | library-level | task-specific"`
 and put only `general`/`library-level` ones in `patterns`. Everything task-specific goes to
 `one_off_issues` — that list is the input for hint (SI) generation, not for skills.

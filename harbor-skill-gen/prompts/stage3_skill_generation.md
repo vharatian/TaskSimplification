@@ -7,12 +7,14 @@ For each pattern in `pattern_synthesis.json` (in `priority_order`), write
 The SKILL.md is for an AI coding agent that will face SIMILAR but NOT IDENTICAL tasks
 (build a Python project from a natural-language spec; hidden pytest grading). It must:
 
-1. Start with YAML frontmatter:
+1. Start with YAML frontmatter in the Agent Skills format (validated by
+   `scripts/check_skill_format.py`; the agent decides from the description ALONE whether to open
+   the skill, so put the trigger condition first and name the dependency or situation explicitly):
    ```
    ---
-   name: <Title Case name>
+   name: <the pattern_name: lowercase-hyphenated, max 64 chars, equal to the directory name>
    description: >
-     <"pushy" trigger text: when to use it, concrete keywords and contexts so the agent
+     <third person, max 1024 chars, "pushy" trigger text: when to use it, concrete keywords and contexts so the agent
       actually loads it — e.g. "whenever the spec mentions …", "before marking a packaging
       task complete", "if tests mock a DB cursor …">
    ---
@@ -41,7 +43,8 @@ Rules:
   tooling, library signatures) and general engineering practice. Say "a maintainer-style test
   suite", never "the upstream project's suite".
 - Be concrete and actionable; avoid generic advice ("be careful").
-- Keep it under ~150 lines.
+- Keep it under ~150 lines. Explain why each rule matters instead of stacking MUSTs.
+- Ecosystem skills: about the dependency (driver, framework, stdlib area), never about the package being rebuilt.
 
 ## Also write a compact card: `skills/<pattern_name>/CARD.md`
 
