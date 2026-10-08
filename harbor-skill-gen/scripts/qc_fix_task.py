@@ -25,7 +25,9 @@ ORACLE_CRUFT = [".github", ".gitlab-ci.yml", ".gitignore", ".gitattributes", ".p
                 "CONTRIBUTING.md", "codecov.yml", ".codecov.yml", "compose.yml", "docker-compose.yml",
                 "docker-compose.yaml", "Dockerfile", "entrypoint.sh", "docs", "examples", "volumes",
                 "poetry.lock", "uv.lock", "pdm.lock", "Pipfile.lock", "noxfile.py", "tox.ini", "Makefile",
-                ".coveragerc", "mkdocs.yml", ".vscode", ".idea"]
+                ".coveragerc", "mkdocs.yml", ".vscode", ".idea", "scripts", "CHANGELOG.md", "CHANGELOG.rst",
+                "CHANGES.md", "HISTORY.md", "requirements-dev.txt", "dev.txt", "ruff.toml", ".ruff.toml",
+                ".well-known", ".flake8", ".pylintrc", "renovate.json", ".devcontainer"]
 LIB_TAGS = {"django": "django", "fastapi": "fastapi", "psycopg2-binary": "postgresql", "psycopg2": "postgresql",
             "asyncpg": "postgresql", "msgspec": "msgspec", "pydantic": "pydantic", "requests": "http",
             "httpx": "http", "niquests": "http", "aiohttp": "asyncio", "websockets": "websockets",
@@ -53,7 +55,9 @@ def fix_toml(tf: Path, difficulty: str | None, vt: int):
     old_tags = re.search(r"^tags\s*=\s*\[([^\]]*)\]", body, re.M)
     keep = [t.strip().strip('"') for t in old_tags.group(1).split(",")] if old_tags else []
     pyver = [t for t in keep if re.fullmatch(r"python3\.\d+", t)]
-    lib = sorted({LIB_TAGS[d] for d in deps(tf) if d in LIB_TAGS})
+    spec_text = (tf / "environment" / "spec.md").read_text(errors="replace").lower() if (tf / "environment" / "spec.md").exists() else ""
+    spec_text += (tf / "instruction.md").read_text(errors="replace").lower()
+    lib = sorted({LIB_TAGS[d] for d in deps(tf) if d in LIB_TAGS and d.split(".")[0].replace("-binary", "") in spec_text})
     tags = ["python", "nl2repo", "library-reimplementation"] + lib + pyver
     spec_kb = (tf / "environment" / "spec.md").stat().st_size // 1024 if (tf / "environment" / "spec.md").exists() else 60
     expert = max(180, min(720, round(spec_kb * 2 / 30) * 30))
@@ -77,6 +81,10 @@ def clean_oracle(tf: Path) -> list[str]:
     for f in ("pyproject.toml", "setup.cfg", "setup.py", "MANIFEST.in"):
         if (scaffold / f).exists():
             referenced += (scaffold / f).read_text(errors="replace")
+    tests_text = ""
+    for f in (scaffold / "tests").rglob("*") if (scaffold / "tests").is_dir() else []:
+        if f.is_file() and f.suffix in (".py", ".cfg", ".ini", ".toml", ".json", ".yaml", ".yml", ".txt"):
+            tests_text += f.read_text(errors="replace")
     removed = []
     names = list(ORACLE_CRUFT) + (["tests"] if (scaffold / "tests").is_dir() else [])
     for n in names:
@@ -85,12 +93,29 @@ def clean_oracle(tf: Path) -> list[str]:
             continue
         if p.is_dir() and (p / "__init__.py").exists() and n not in ("tests",):
             continue  # importable package code: keep
+        # a file the graded tests mention (e.g. tests that read tox.ini or CI config) stays
+        if n != "tests" and n in tests_text:
+            continue
         # a packaging reference (e.g. a data-file include) keeps it; lint excludes and URLs do not count
         if re.search(rf'(include|data[-_]files|package[-_]data|packages)\s*=?[^\n]*["\']{re.escape(n)}[/"\']', referenced):
             continue
         shutil.rmtree(p) if p.is_dir() else p.unlink()
         removed.append(n)
     return removed
+
+
+def fix_attribution(tf: Path) -> bool:
+    """ATTRIBUTION.md says the tests are upstream; note any task-specific contract tests added on top."""
+    att = tf / "ATTRIBUTION.md"; tests = tf / "tests" / "assets" / "scaffold" / "tests"
+    if not att.exists() or not tests.is_dir():
+        return False
+    added = sorted(str(p.relative_to(tests.parent)) for p in tests.rglob("*.py") if "contract" in p.name)
+    text = att.read_text()
+    if not added or "task-specific contract tests" in text:
+        return False
+    att.write_text(text.rstrip("\n") + "\n\nIn addition to the upstream tests, the graded suite includes task-specific contract tests "
+                   "written for this task: " + ", ".join(f"`{a}`" for a in added) + ".\n")
+    return True
 
 
 def main():
@@ -104,7 +129,8 @@ def main():
         if a.tasks and tf.name not in a.tasks:
             continue
         fix_toml(tf, a.difficulty, a.verifier_timeout)
-        print(f"{tf.name:40s} oracle removed: {', '.join(clean_oracle(tf)) or '-'}")
+        att = fix_attribution(tf)
+        print(f"{tf.name:40s} oracle removed: {', '.join(clean_oracle(tf)) or '-'}{'  | ATTRIBUTION noted contract tests' if att else ''}")
 
 
 if __name__ == "__main__":

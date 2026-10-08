@@ -27,7 +27,7 @@ add skills (round 1) and, for tasks still outside 1-6/8, hints (round 2).
 5. **Hints aim low.** Hints address only the top one or two shared failures. The target is 1-6
    of 8 passing; 8/8 makes the task useless for the band.
 
-## Why (short research summary; full report in the Cognyzer reports folder)
+## Why (short research summary)
 
 - A few focused skills beat many. In SkillsBench, 2-3 skills gave +18.6pp, 4 or more gave
   +5.9pp, and "comprehensive" bundles were below baseline. Software engineering gained least,
