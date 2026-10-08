@@ -29,7 +29,7 @@ GENERIC = {"tests", "test", "python", "pytest", "spec", "config", "configuration
 
 
 def collect_identifiers(wd: Path) -> set:
-    ids = set()
+    ids = set(); _seen = set()
     def add(s):
         if not s or not isinstance(s, str):
             return
@@ -56,6 +56,25 @@ def collect_identifiers(wd: Path) -> set:
         for cf in g.get("consistent_failures", []):
             for nid in cf.get("tests", []):
                 add(nid)
+            for k in ("what_the_test_requires", "what_agents_did_instead", "error_signature"):
+                for tok in re.findall(r"`([^`]+)`", str(cf.get(k, ""))):
+                    add(tok)
+    import ast
+    for b in (wd / "bundles").glob("*/bundle.json"):
+        try: td = json.loads(b.read_text()).get("task_dir")
+        except Exception: continue
+        if not td: continue
+        oracle = Path(td) / "solution" / "oracle"
+        if str(oracle) in _seen: continue
+        _seen.add(str(oracle))
+        for p in oracle.rglob("*.py"):
+            if {"tests", "test"} & set(p.parts): continue
+            try: tree = ast.parse(p.read_text(errors="replace"))
+            except Exception: continue
+            for n in ast.walk(tree):
+                if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)): add(n.name)
+                elif isinstance(n, ast.Attribute) and isinstance(n.value, ast.Name) and n.value.id in ("self", "cls"): add(n.attr)
+                elif isinstance(n, ast.arg) and "_" in n.arg.strip("_"): add(n.arg)
     # keep only identifier-shaped tokens: snake_case, CamelCase, dotted, or task-slug parts.
     # Plain English fragments (e.g. 'existing' from test_deletes_existing_key) are dropped.
     def looks_like_identifier(tok: str) -> bool:

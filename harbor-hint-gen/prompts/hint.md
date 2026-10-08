@@ -32,8 +32,9 @@ review.
   a specific line.
 - Say what to verify or double-check before finishing, in terms of observable behaviour
   the spec describes (which input shapes, which flows, which strings).
-- Cover every consistent-failure cluster in hint_input.md with at least one sentence.
-  Ignore incidental one-run failures.
+- Address ONLY the one or two clusters with the highest failed-in-runs count (the shared ceiling).
+  Leave the long tail of other clusters and one-run failures alone. The goal is a slight lift into a
+  1-6 out of 8 pass band, never 8 out of 8: a hint that fixes everything makes the task useless.
 
 ## Hard rules
 

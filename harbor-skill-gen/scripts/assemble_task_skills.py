@@ -16,13 +16,13 @@ from pathlib import Path
 PHASES = [("read", "Before you start: read the spec"), ("implement", "While implementing"),
           ("verify", "While verifying"), ("finish", "Before you declare completion")]
 
-PREAMBLE = """# Skills for this task
+PREAMBLE = """# Working guidance
 
-These are working rules distilled from many failed attempts at tasks like this one: build a
-Python package from a long specification, graded by a hidden test suite you never see. Read
-this file once before touching the spec, then re-open the relevant section when you reach
-that phase. Each skill has a one-line rule, a few do/don't items and "if you see X" diagnostics.
-Nothing here replaces the spec; where the two seem to disagree, the spec wins and you re-read it.
+Practical rules for building a Python package from a long specification that is graded by
+tests you do not see. Read this file once before you start the spec, then come back to the
+section for the phase you are in. Each card has a rule, a few do/don't items and "if you see X"
+diagnostics. Nothing here replaces the specification; where the two seem to disagree, follow
+the specification.
 """
 
 FINISH = """## Shared finish checklist

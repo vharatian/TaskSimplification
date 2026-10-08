@@ -46,11 +46,12 @@ def main():
     if a.tasks:
         gaps = [g for g in gaps if g.get("task") in set(a.tasks)]
     if a.compact:
-        def digest_one(g):  # noqa: F811 — compact override
+        def digest_compact(g):
             out = [f"## {g.get('task')}  (runs={g.get('n_runs')}, rewards={g.get('rewards')})"]
             out += [f"- [{s.get('domain')}] {s.get('skill')} ({s.get('generality')})" for s in g.get("missing_skills", [])]
             out.append(f"- lesson: {g.get('generalizable_lesson')}")
             return "\n".join(out)
+    fmt = digest_compact if a.compact else digest_one
     if a.pattern:
         ps = json.loads((wd / "pattern_synthesis.json").read_text())
         pat = next((p for p in ps.get("patterns", []) if p.get("pattern_name") == a.pattern), None)
@@ -68,7 +69,7 @@ def main():
             tally[s.get("domain", "?")] = tally.get(s.get("domain", "?"), 0) + 1
     head.append("Missing-skill domains (count across tasks): " + ", ".join(f"{k}={v}" for k, v in sorted(tally.items(), key=lambda kv: -kv[1])))
     head.append("")
-    text = "\n".join(head + [digest_one(g) + "\n" for g in gaps])
+    text = "\n".join(head + [fmt(g) + "\n" for g in gaps])
     if a.out:
         Path(a.out).write_text(text)
         print(f"wrote {a.out} ({len(text)} chars)")

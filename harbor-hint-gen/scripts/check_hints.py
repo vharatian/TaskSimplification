@@ -101,6 +101,11 @@ def main():
             for tok in set(re.findall(r"\b[a-z]+_[a-z_]+\b|\b[A-Z][a-z]+[A-Z]\w+\b", text)):
                 if tok.lower() not in public_l and tok.lower() not in allow:
                     findings.append(f"identifier '{tok}' not found in instruction/spec")
+            for tok in set(re.findall(r"\b[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)+\b", text)):
+                if tok.lower() not in public_l and tok.lower() not in allow and not re.fullmatch(r"(e\.g|i\.e|etc)", tok.lower()):
+                    findings.append(f"dotted name '{tok}' not found in instruction/spec")
+            for m in re.finditer(r"\b(equals?|gives?|returns?|yields?|counts?|totals?|is|be|exactly|must be|should be)\s+(\d+)\b", text, re.I):
+                findings.append(f"stated value '{m.group(0)}' (possible expected value)")
             for num in set(re.findall(r"(?<![\w.])\d{2,}(?:\.\d+)?(?![\w.])", text)):
                 if num not in public:
                     findings.append(f"number {num} not found in instruction/spec (possible expected value)")

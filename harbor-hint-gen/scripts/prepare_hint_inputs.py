@@ -54,10 +54,10 @@ def main():
               f"- runs: {g.get('n_runs')} | rewards: {g.get('rewards')} | timed out: {g.get('runs_timed_out')}",
               f"- task dir: `{task_dir}`  (instruction.md, environment/spec.md, solution/oracle/ — oracle may be read, never quoted)",
               f"- gap analysis: `{f.with_suffix('.md')}` | cross-run summary: `{W / 'tasks' / task / 'task_summary.md'}`", "",
-              "## Consistent failures (address each with at least one sentence)", ""]
+              "## Consistent failures (hint ONLY the top one or two by run count; leave the rest)", ""]
         for i, cf in enumerate(g.get("consistent_failures", []), 1):
             md += [f"### Cluster {i} — {cf.get('failed_in_runs')} runs, severity {cf.get('severity')}",
-                   f"- **The spec requires:** {cf.get('what_the_test_requires')}",
+                   f"- **The graded behaviour (spec status: {cf.get('requirement_in_instruction')}):** {cf.get('what_the_test_requires')}",
                    f"- **The runs did instead:** {cf.get('what_agents_did_instead')}",
                    f"- **Requirement in instruction:** {cf.get('requirement_in_instruction')}",
                    f"- **Missing knowledge:** {cf.get('missing_knowledge')}", ""]
@@ -80,7 +80,7 @@ def main():
         md += ["", "## Rules (summary; full text in prompts/hint.md)", "",
                "- 10-25 lines, starts with `## Supplementary Instruction`, second person.",
                "- No code, values, identifiers or strings absent from the spec; never mention tests/graders/runs.",
-               "- Point to spec sections and concepts; say what to verify; cover every cluster above."]
+               "- Point to spec sections and concepts; say what to verify; only the top one or two clusters."]
         (out / "hint_input.md").write_text("\n".join(md) + "\n")
         written.append(task); print(f"  {task:38s} clusters={len(g.get('consistent_failures', []))} → {out / 'hint_input.md'}")
     print(f"prepared {len(written)} hint inputs under {W / 'hints'}")

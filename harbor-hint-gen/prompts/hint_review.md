@@ -10,8 +10,8 @@ Check, sentence by sentence:
    an algorithm step) rather than where to look or what to verify? Does it use any
    identifier, literal or number absent from the spec? Does it mention tests, graders or
    run outputs? Any yes → rewrite that sentence to a concept or a spec pointer.
-2. **Coverage.** Is every consistent-failure cluster in hint_input.md addressed by at
-   least one sentence? Missing → add one, in the same style.
+2. **Strength.** Does it address only the top one or two clusters? If it covers more,
+   remove the weaker ones: the target is 1-6 out of 8 passing, not 8 out of 8.
 3. **Specificity.** Is any sentence so generic it could be pasted into another task?
    Anchor it to a spec section or clause of this task, or delete it.
 4. **Form.** Starts with `## Supplementary Instruction`; 10–25 non-empty lines wrapped at
