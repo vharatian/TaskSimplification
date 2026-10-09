@@ -42,6 +42,14 @@ add skills (round 1) and, for tasks still outside 1-6/8, hints (round 2).
 
 Numbers come from 2025-26 preprints read at summary level. Verify them before external use.
 
+## Choosing tasks and sizing hints
+
+"Best reward 0.98" does not mean a task is close to passing: a pass needs every graded test, and many
+near-miss tasks fail on different scattered slips in every run. `harbor-hint-gen/scripts/ceiling.py`
+computes, from the historic runs, the fewest failing test families whose fix would have let 2 runs pass.
+Tasks with a small number are good candidates; their hints cover exactly those families. `final_qc.py`
+then checks a finished delivery against the original export.
+
 ## Experiment design
 
 | Arm | Skills per task | Purpose |

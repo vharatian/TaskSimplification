@@ -123,6 +123,22 @@ Exit 0 is required before handing the folder over.
 Tasks hinted, the clusters each hint addresses, review verdicts, leak-check result,
 delivery path, and tasks skipped (passing runs / too few runs). Show each hint text.
 
+## Calibration and final check (scripts)
+
+Before writing hints, measure how far each zero-pass task is from the target pass count:
+```bash
+python3 <skill_dir>/scripts/ceiling.py --delivery-dir <export_root> --model-filter <model> --passes 2 --out <work_dir>/hint_targets.json
+```
+`k` is the fewest failing test families whose fix would have let 2 historic runs pass completely.
+Small k (1-5): hint exactly those target families and nothing else, so the task lands at about 2 of 8
+instead of 8 of 8. Large k: failures are scattered; choose other tasks rather than writing answer-shaped hints.
+
+After building the delivery, prove only the intended files changed (spec, tests and grader byte-identical,
+one appended Supplementary Instruction, skills valid):
+```bash
+python3 <skill_dir>/scripts/final_qc.py <out_dir> --export <export_root> [--harbor-python <python with harbor>]
+```
+
 ## Guardrails
 
 - A hint is task-specific by design, but solution-free: where to look and what to verify,
