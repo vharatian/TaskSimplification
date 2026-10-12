@@ -139,6 +139,15 @@ one appended Supplementary Instruction, skills valid):
 python3 <skill_dir>/scripts/final_qc.py <out_dir> --export <export_root> [--harbor-python <python with harbor>]
 ```
 
+## Task-side fixes (when a hint cannot help)
+
+If a target family fails because the task is wrong (a test pins behaviour the spec omits or contradicts, verified
+against the oracle) or because of the platform (golden ids failing on correct code), fix the task instead of hinting:
+write reviewed `<work_dir>/specfix/<task>.json` / `gradefix/<task>.json`, apply them with `scripts/apply_fixes.py`,
+and pass the printed `TASK:PATH` values to `final_qc.py --allow-change` so every such edit is listed. Keep each spec
+edit to the minimum the spec should have said; never fix a model error through the spec. If the oracle does not score
+1.0 locally, check `scripts/restore_oracle.py` (the export drops `/vendor/` paths).
+
 ## Guardrails
 
 - A hint is task-specific by design, but solution-free: where to look and what to verify,

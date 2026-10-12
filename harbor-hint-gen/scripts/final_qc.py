@@ -17,6 +17,10 @@ target package; Dockerfile copies the skills; task.toml sets skills_dir; manifes
 With --harbor-python, also loads each task.toml through Harbor's own TaskConfig model.
 
   python final_qc.py <delivery_dir> --export <export_root> [--harbor-python <python with harbor>]
+                     [--allow-change <task>:<path> ...]
+--allow-change permits a deliberate, reviewed edit to one otherwise-frozen file of one task (a path ending
+in / also permits files added under it, e.g. oracle files an export dropped) (e.g. a verified
+spec-defect fix in environment/spec.md, or golden ids removed for a platform problem); it is reported, not hidden.
 Exit 1 if any task has a finding.
 """
 from __future__ import annotations
@@ -47,23 +51,26 @@ def original(export: Path, task: str) -> Path | None:
     return hits[0] if hits else None
 
 
-def check(new: Path, orig: Path, harbor_python: str | None) -> list[str]:
+def check(new: Path, orig: Path, harbor_python: str | None, allowed: set[str] = frozenset()) -> list[str]:
     f = []
     N, O = tree(new), tree(orig)
     changed = sorted(k for k in N if k in O and sha(N[k]) != sha(O[k]))
     added = sorted(k for k in N if k not in O)
     removed = sorted(k for k in O if k not in N)
-    if bad := [k for k in changed if k not in ALLOWED_CHANGED]:
+    pre = tuple(a for a in allowed if a.endswith("/"))
+    if bad := [k for k in changed if k not in ALLOWED_CHANGED and k not in allowed and not k.startswith(pre or ("\0",))]:
         f.append(f"unexpected changes {bad[:4]}")
-    if bad := [k for k in added if not k.startswith("environment/skills/")]:
+    if bad := [k for k in added if not k.startswith("environment/skills/") and not k.startswith(pre or ("\0",))]:
         f.append(f"unexpected new files {bad[:4]}")
     if bad := [k for k in removed if not (k.startswith("solution/oracle/") or re.match(r"(FIX_NOTES|NOTES|TODO)", k))]:
         f.append(f"unexpected removals {bad[:4]}")
     for k in MUST_MATCH:
+        if k in allowed:
+            continue
         if k in O and (k not in N or sha(N[k]) != sha(O[k])):
             f.append(f"{k} differs from the original")
     scaffold = "tests/assets/scaffold/"
-    if any(k.startswith(scaffold) and k in N and sha(N[k]) != sha(O[k]) for k in O) or any(k.startswith(scaffold) for k in removed):
+    if any(k.startswith(scaffold) and k not in allowed and k in N and sha(N[k]) != sha(O[k]) for k in O) or any(k.startswith(scaffold) for k in removed):
         f.append("test scaffold changed")
     oi, ni = (orig / "instruction.md").read_text(), (new / "instruction.md").read_text()
     base = oi.rstrip("\n")
@@ -102,14 +109,21 @@ def main():
     ap.add_argument("delivery_dir")
     ap.add_argument("--export", required=True, help="original export root: <task>/rev_*/task_files")
     ap.add_argument("--harbor-python", help="python interpreter that has harbor installed (optional)")
+    ap.add_argument("--allow-change", action="append", default=[], metavar="TASK:PATH",
+                    help="permit a reviewed edit to PATH in TASK (repeatable)")
     a = ap.parse_args()
     D, E = Path(a.delivery_dir), Path(a.export)
+    allow = {}
+    for item in a.allow_change:
+        t, _, path = item.partition(":")
+        allow.setdefault(t, set()).add(path)
     total = 0
     for new in sorted(p for p in D.iterdir() if (p / "task.toml").exists()):
         orig = original(E, new.name)
-        findings = ["original task not found in export"] if orig is None else check(new, orig, a.harbor_python)
+        findings = ["original task not found in export"] if orig is None else check(new, orig, a.harbor_python, allow.get(new.name, set()))
         total += len(findings)
-        print(f"{new.name:40s} {'OK' if not findings else '; '.join(findings)}")
+        note = f"  (reviewed edits: {', '.join(sorted(allow[new.name]))})" if allow.get(new.name) else ""
+        print(f"{new.name:40s} {'OK' if not findings else '; '.join(findings)}{note}")
     print(f"\nfindings: {total}")
     sys.exit(1 if total else 0)
 
