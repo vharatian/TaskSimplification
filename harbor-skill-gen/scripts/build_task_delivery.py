@@ -17,6 +17,20 @@ from __future__ import annotations
 
 import argparse, hashlib, json, re, shutil, subprocess, sys
 from pathlib import Path
+def task_ignore(root):
+    """copytree ignore: drop author notes and editor cruft, but never touch anything the task ships as data.
+
+    Under tests/ and environment/ only caches are skipped: scaffold fixtures can legitimately be named *.tmp, *.bak, *~."""
+    root = Path(root).resolve()
+    everywhere = shutil.ignore_patterns(".DS_Store", "__pycache__", ".pytest_cache")
+    cruft = shutil.ignore_patterns(".DS_Store", "__pycache__", "FIX_NOTES*", "NOTES*.md", "NOTES.md", "TODO*", "CHANGES_*",
+                                   "*.bak", "*.orig", "*.rej", "*.tmp", "*~", ".pytest_cache", ".idea", ".vscode")
+
+    def ignore(d, names):
+        rel = Path(d).resolve().relative_to(root).parts if Path(d).resolve() != root else ()
+        return (everywhere if rel and rel[0] in ("tests", "environment") else cruft)(d, names)
+    return ignore
+
 
 HERE = Path(__file__).resolve().parent
 
@@ -70,7 +84,7 @@ def main():
         dst = OUT / task
         if dst.exists():
             shutil.rmtree(dst)
-        shutil.copytree(tf, dst, ignore=shutil.ignore_patterns(".DS_Store", "__pycache__", "FIX_NOTES*", "NOTES*.md", "NOTES.md", "TODO*", "CHANGES_*", "*.bak", "*.orig", "*.rej", "*.tmp", "*~", ".pytest_cache", ".idea", ".vscode"))
+        shutil.copytree(tf, dst, ignore=task_ignore(tf))
         copied.append(task)
     print(f"copied task files for {len(copied)} tasks → {OUT}")
 

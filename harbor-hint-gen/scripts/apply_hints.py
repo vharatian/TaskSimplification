@@ -13,6 +13,20 @@ Writes <out_dir>/MANIFEST.json and README.md.
 from __future__ import annotations
 import argparse, hashlib, json, re, shutil
 from pathlib import Path
+def task_ignore(root):
+    """copytree ignore: drop author notes and editor cruft, but never touch anything the task ships as data.
+
+    Under tests/ and environment/ only caches are skipped: scaffold fixtures can legitimately be named *.tmp, *.bak, *~."""
+    root = Path(root).resolve()
+    everywhere = shutil.ignore_patterns(".DS_Store", "__pycache__", ".pytest_cache")
+    cruft = shutil.ignore_patterns(".DS_Store", "__pycache__", "FIX_NOTES*", "NOTES*.md", "NOTES.md", "TODO*", "CHANGES_*",
+                                   "*.bak", "*.orig", "*.rej", "*.tmp", "*~", ".pytest_cache", ".idea", ".vscode")
+
+    def ignore(d, names):
+        rel = Path(d).resolve().relative_to(root).parts if Path(d).resolve() != root else ()
+        return (everywhere if rel and rel[0] in ("tests", "environment") else cruft)(d, names)
+    return ignore
+
 
 SI_RE = re.compile(r"\n+## Supplementary Instruction\b.*\Z", re.S)
 
@@ -45,7 +59,7 @@ def main():
         if not a.in_place:
             if dst.exists():
                 shutil.rmtree(dst)
-            shutil.copytree(tf, dst, ignore=shutil.ignore_patterns(".DS_Store", "__pycache__", "FIX_NOTES*", "NOTES*.md", "NOTES.md", "TODO*", "CHANGES_*", "*.bak", "*.orig", "*.rej", "*.tmp", "*~", ".pytest_cache", ".idea", ".vscode"))
+            shutil.copytree(tf, dst, ignore=task_ignore(tf))
         ins = dst / "instruction.md"; s = ins.read_text()
         hint = h.read_text().strip()
         replaced = bool(SI_RE.search(s))
